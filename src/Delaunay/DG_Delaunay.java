@@ -5,6 +5,7 @@ import wblut.geom.*;
 import wblut.hemesh.*;
 import wblut.processing.WB_Render3D;
 
+import javax.tools.Tool;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -45,9 +46,7 @@ public class DG_Delaunay {
             nodes.add(Tools.randPinPoly(network.net));
         }
 
-        for (int i = 0; i < network.houses.size(); i++) {
-            
-        }
+        nodes.addAll(Tools.getAllPoints(network.innerPolys,0.5));
 
     }
 

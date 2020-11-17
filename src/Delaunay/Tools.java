@@ -337,19 +337,20 @@ public class Tools {
     /*
     读取多边形集合中所有的点,并且沿边每隔一段距离取点
      */
-    public static List<WB_Coord> getNet(List<WB_Polygon> polygons, double maxDistance) {
-        List<WB_Coord> points = new ArrayList<>();
+    public static List<WB_Point> getAllPoints(List<WB_Polygon> polygons, double maxDistance) {
+        List<WB_Point> points = new ArrayList<>();
         for (WB_Polygon poly : polygons) {
-            List<WB_Coord> pointsForOne = poly.getPoints().toList();
-            for (int i = 0; i < pointsForOne.size(); i++) {
-                double distance = WB_GeometryOp.getDistance3D(pointsForOne.get(i), pointsForOne.get(i + 1));
-                    for (int n = 1; n <  Math.; n++)
-                        pointsForOne.add(gf.createInterpolatedPoint2D(pointsForOne.get(i), pointsForOne.get(i + 1), n*Math.floor(2*distance+1)));
-            }
+            List<WB_Point> pointsForOne = new ArrayList<>();
+            for(int i = 0; i< poly.getNumberOfPoints();i++)
+                pointsForOne.add(poly.getPoint(i));
 
+//            for (int i = 0; i < pointsForOne.size(); i++) {
+//                double distance = WB_GeometryOp.getDistance3D(pointsForOne.get(i), pointsForOne.get(i + 1));
+//                    for (int n = 1; n < (int)(distance/maxDistance)+1; n++)
+//                        pointsForOne.add(gf.createInterpolatedPoint2D(pointsForOne.get(i), pointsForOne.get(i + 1), n*((int)(distance/maxDistance)+1)));
+//            }
+            points.addAll(pointsForOne);
         }
-
-
         return points;
     }
 }
