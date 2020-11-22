@@ -26,13 +26,12 @@ public class DG_Land {
 
     public DG_Land(String path, String layer) {
         importer = new DXFImporter(path, "GBK");
-        GCD = importer.getWBPointFromGCD("GCD");
+        GCD = importer.getWBPointFromGCD(layer);
         WB_Triangulation2D triangulation = WB_Triangulate.triangulate2D(GCD);
         terrain = new HE_Mesh(new HEC_FromTriangulation().setTriangulation(triangulation).setPoints(GCD));
         terrainSliced = terrain.get();
         range = new WB_AABB2D(GCD);
         rangePolygon = Tools.aabbToWBPolygon(range);
-
     }
 
 

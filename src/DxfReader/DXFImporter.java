@@ -37,7 +37,7 @@ public class DXFImporter {
      * @param args
      */
     public static void main(String[] args) {
-        DXFImporter importer = new DXFImporter("C:\\Users\\ldy90\\Desktop\\test.dxf", GBK);
+        DXFImporter importer = new DXFImporter("C:\\Users\\ldy90\\Desktop\\test.dxf", UTF_8);
         List<WB_PolyLine> lines = importer.getLines("0");
         List<WB_Point> points = importer.getPoints("0");
     }
@@ -61,8 +61,17 @@ public class DXFImporter {
         return layers;
     }
 
+    public List<WB_Point> getCircleCenters(String layerId) {
+        List<WB_Circle> circles = getCircles(layerId);
+        List<WB_Point> centers = new ArrayList<>();
+        for (WB_Circle c : circles) {
+            centers.add(new WB_Point(c.getCenter()));
+        }
+        return centers;
+    }
+
     public List<WB_Circle> getCircles(String layerId) {
-        DXFLayer layer = doc.getDXFLayer(layerId.toUpperCase());
+        DXFLayer layer = doc.getDXFLayer(layerId);
         List<WB_Circle> circles = new ArrayList<>();
         List list = layer.getDXFEntities(DXFConstants.ENTITY_TYPE_CIRCLE);
         if (list != null) {
@@ -82,7 +91,7 @@ public class DXFImporter {
         return texts == null ? new ArrayList<>() : texts;
     }
 
-    public List<WB_Point> getWBPointFromGCD(String layerId){
+    public List<WB_Point> getWBPointFromGCD(String layerId) {
         DXFLayer layer = doc.getDXFLayer(layerId.toUpperCase());
         List<DXFText> texts = layer.getDXFEntities(DXFConstants.ENTITY_TYPE_TEXT);
         List<WB_Point> points = new ArrayList<>();

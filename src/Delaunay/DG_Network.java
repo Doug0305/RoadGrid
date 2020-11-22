@@ -1,15 +1,12 @@
 package Delaunay;
 
 import DxfReader.DXFImporter;
-import jdk.nashorn.internal.ir.WhileNode;
 import processing.core.PApplet;
 import wblut.geom.*;
-import wblut.hemesh.HE_MeshOp;
 import wblut.processing.WB_Render3D;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -23,7 +20,7 @@ public class DG_Network {
     List<WB_Polygon> houses;
     WB_AABB2D boundary;
     WB_Render3D render;
-    WB_Polygon net;
+    WB_Polygon boundaryPolygon;
 
     List<WB_Polygon>innerPolys;
     public DG_Network(String path, String layer) {
@@ -32,8 +29,9 @@ public class DG_Network {
         houses = subRepetitivePoint(houses);
         boundary = new WB_AABB2D(houses.stream().map(e -> e.getPoints().toList()).flatMap(Collection::stream).collect(Collectors.toList()));
         boundary.expandBy(10);
-        innerPolys = Tools.createBufferedPolygons(houses, 0.5);
-        net = Tools.aabbToWBPolygon(boundary);
+        innerPolys = Tools.createBufferedPolygons(houses, 0);
+        boundaryPolygon = Tools.aabbToWBPolygon(boundary);
+
     }
 
     private List<WB_Polygon> subRepetitivePoint(List<WB_Polygon> polygons) {
@@ -53,10 +51,10 @@ public class DG_Network {
         app.pushStyle();
         app.fill(100);
         app.noStroke();
-        render.drawPolygon(net);
+        render.drawPolygon(boundaryPolygon);
         app.stroke(0);
         app.noFill();
-        render.drawPolygonEdges(net);
+        render.drawPolygonEdges(boundaryPolygon);
         app.stroke(255,0,0);
         app.noFill();
         for (WB_Polygon poly : houses) {

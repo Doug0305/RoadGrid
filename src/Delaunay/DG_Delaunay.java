@@ -5,9 +5,7 @@ import wblut.geom.*;
 import wblut.hemesh.*;
 import wblut.processing.WB_Render3D;
 
-import javax.tools.Tool;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 
 /**
@@ -43,10 +41,10 @@ public class DG_Delaunay {
         }
 
         for (int i = 0; i < number; i++) {
-            nodes.add(Tools.randPinPoly(network.net));
+            nodes.add(Tools.randPinPoly(network.boundaryPolygon));
         }
 
-        nodes.addAll(Tools.getAllPoints(network.innerPolys,0.5));
+        nodes.addAll(Tools.getAllPoints(network.innerPolys, 0.5));
 
     }
 
@@ -58,14 +56,14 @@ public class DG_Delaunay {
         HEC_FromTriangles creator = new HEC_FromTriangles();
         List<WB_Triangle> tris = new ArrayList<>();
         for (int i = 0; i < triangles.length; i += 3) {
-            if (!Tools.checkIntersections(pointsAfterTriangulation.get(triangles[i]), pointsAfterTriangulation.get(triangles[i + 1]),pointsAfterTriangulation.get(triangles[i + 2]), network.innerPolys)) {
-                tris.add(Tools.gf.createTriangle(pointsAfterTriangulation.get(triangles[i]),pointsAfterTriangulation.get(triangles[i+1]),pointsAfterTriangulation.get(triangles[i+2])));
+            if (!Tools.checkIntersections(pointsAfterTriangulation.get(triangles[i]), pointsAfterTriangulation.get(triangles[i + 1]), pointsAfterTriangulation.get(triangles[i + 2]), network.innerPolys)) {
+                tris.add(Tools.gf.createTriangle(pointsAfterTriangulation.get(triangles[i]), pointsAfterTriangulation.get(triangles[i + 1]), pointsAfterTriangulation.get(triangles[i + 2])));
             }
         }
-        System.out.println(triangles.length/3);
-        System.out.println(tris.size());
         creator.setTriangles(tris);
-        delaunayWithHoles=new HE_Mesh(creator);
+        delaunayWithHoles = new HE_Mesh(creator);
+
+
     }
 
     public void show(PApplet app) {
@@ -75,14 +73,14 @@ public class DG_Delaunay {
         app.noFill();
         app.stroke(0);
         app.strokeWeight(1);
-        for (int i = 0; i < triangles.length; i += 3) {
-            app.beginShape(app.TRIANGLES);
-            render.vertex2D(pointsAfterTriangulation.get(triangles[i]));
-            render.vertex2D(pointsAfterTriangulation.get(triangles[i + 1]));
-            render.vertex2D(pointsAfterTriangulation.get(triangles[i + 2]));
-            app.endShape();
-        }
-        app.stroke(255,0,0);
+//        for (int i = 0; i < triangles.length; i += 3) {
+//            app.beginShape(app.TRIANGLES);
+//            render.vertex2D(pointsAfterTriangulation.get(triangles[i]));
+//            render.vertex2D(pointsAfterTriangulation.get(triangles[i + 1]));
+//            render.vertex2D(pointsAfterTriangulation.get(triangles[i + 2]));
+//            app.endShape();
+//        }
+        app.stroke(150, 0, 0,50);
         app.strokeWeight(2);
         render.drawEdges(delaunayWithHoles);
         app.stroke(255, 0, 0);
@@ -92,8 +90,6 @@ public class DG_Delaunay {
             render.vertex2D(nodes.get((i + 1) % constrains.length));
             app.endShape();
         }
-
-
         app.popStyle();
     }
 }
