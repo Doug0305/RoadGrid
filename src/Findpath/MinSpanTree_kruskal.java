@@ -13,7 +13,6 @@ public class MinSpanTree_kruskal {
     private Edge[] edges;
     private int edgeSize;
     public MinSpanTree_kruskal(Edge[] edges) {
-
         this.edgeSize = edges.length;
         this.edges = Edge.getSorted(edges);
     }

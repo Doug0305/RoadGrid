@@ -18,7 +18,7 @@ public class Main extends PApplet {
     DG_Network network;
     DG_Land land;
     DG_Delaunay delaunay;
-    DG_Nodes sewer;
+    DG_Nodes sewers;
     CameraController cam;
 
     public void settings() {
@@ -28,17 +28,17 @@ public class Main extends PApplet {
     public void setup() {
         String path = "src\\01-01-11-雄州街道-龙虎营-兴隆.dxf";
         cam = new CameraController(this, 300);
-//        network = new DG_Network("src\\01-01-11-雄州街道-龙虎营-兴隆.dxf","TEST");
-        network = new DG_Network(path,"JMDTEST");
-//        network = new DG_Network(path,"JMD1");
+//        network = new DG_Network("src\\01-01-11-雄州街道-龙虎营-兴隆.dxf","TEST",1);
+//        network = new DG_Network(path,"JMDTEST",1);
+        network = new DG_Network(path,"JMD1",1);
 //        land = new DG_Land(path,"GCD");
 //        land.smooth(15);
 //        land.setAABB(20);
         delaunay = new DG_Delaunay(network,(int)network.getBoundary().getArea()*5);
-        sewer = new DG_Nodes(path, new String[]{"KITCHEN", "TOILET", "SHOWER"});
-        sewer.constrainAABB(network);
-        sewer.getClosestPointOnDelaunay(delaunay);
-        sewer.MinSpanTree(delaunay);
+        sewers = new DG_Nodes(path, new String[]{"KITCHEN", "TOILET", "SHOWER"});
+        sewers.constrainAABB(network);
+        sewers.getClosestPointOnDelaunay(delaunay);
+        sewers.SteinerTree();
     }
 
     public void draw() {
@@ -47,8 +47,8 @@ public class Main extends PApplet {
         network.show(this);
 //        land.show(this);
         delaunay.show(this);
-//        sewer.show(this);
-        sewer.showTree(this);
+//        sewers.show(this);
+        sewers.showTree(this);
     }
 
 //    public void mouseClicked() {

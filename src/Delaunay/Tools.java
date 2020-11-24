@@ -9,6 +9,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
+import org.locationtech.jts.algorithm.ConvexHull;
 import org.locationtech.jts.geom.*;
 
 import igeo.ICurve;
@@ -277,15 +278,36 @@ public class Tools {
      */
 
     public static List<WB_Polygon> createBufferedPolygons(List<WB_Polygon> polygons, double d) {
-        List<WB_Polygon> newWolygons = new ArrayList<>();
+        List<WB_Polygon> newPolygons = new ArrayList<>();
         for (WB_Polygon polygon : polygons) {
-            newWolygons.addAll(gf.createBufferedPolygons(polygon, d));
+            newPolygons.addAll(gf.createBufferedPolygons(polygon, d));
         }
-        return newWolygons;
+        return newPolygons;
     }
 
     /*
-    两点连线过多边形的集合
+    合并相距过近的polygon,d距离阈值
+     */
+    public static List<WB_Polygon> unionClosePolygons(List<WB_Polygon> polygons, double d) {
+        List<WB_Polygon> biggerPolygons = gf.createBufferedPolygons(polygons,d/2);
+        return gf.createBufferedPolygons(biggerPolygons,-d/2);
+    }
+
+    /*
+      求集合内每个多边形的凸包
+   */
+    public static List<WB_Polygon> unionClosePolygonConvexHull(List<WB_Polygon> polygons, double d) {
+        List<WB_Polygon> convexHull = new ArrayList<>();
+        for(WB_Polygon poly : polygons = unionClosePolygons(polygons,d)){
+            ConvexHull a = new ConvexHull(toJTSPolygon(poly));
+            convexHull.add(toWB_Polygon(a.getConvexHull()));
+        }
+        return convexHull;
+    }
+
+
+    /*
+    判断三角形是否与多边形的集合中任意相交
      */
     public static boolean checkIntersections(WB_Coord a, WB_Coord b, WB_Coord c, List<WB_Polygon> polygons) {
         for (WB_Polygon polygon : polygons) {

@@ -11,8 +11,6 @@ import java.util.stream.Collectors;
  * @create: 2020-11-19 10:37
  */
 public class MSTTest {
-
-
     public static void main(String[] args) {
         Edge[] edges = new Edge[]{
                 new Edge(0,1,10),

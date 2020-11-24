@@ -23,13 +23,13 @@ public class DG_Network {
     WB_Polygon boundaryPolygon;
 
     List<WB_Polygon>innerPolys;
-    public DG_Network(String path, String layer) {
+    public DG_Network(String path, String layer, double minDis) {
         importer = new DXFImporter(path, "GBK");
         houses = importer.getPolygons(layer);
-        houses = subRepetitivePoint(houses);
+//        houses = subRepetitivePoint(houses);
         boundary = new WB_AABB2D(houses.stream().map(e -> e.getPoints().toList()).flatMap(Collection::stream).collect(Collectors.toList()));
         boundary.expandBy(10);
-        innerPolys = Tools.createBufferedPolygons(houses, 0);
+        innerPolys = Tools.unionClosePolygonConvexHull(houses, minDis);
         boundaryPolygon = Tools.aabbToWBPolygon(boundary);
 
     }
