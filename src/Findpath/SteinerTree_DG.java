@@ -22,7 +22,7 @@ public class SteinerTree_DG {
     HE_Mesh mesh;
     List<HE_Vertex> vertexes = new ArrayList<>();
     List<HE_Vertex> vertexesOnPath = new ArrayList<>();
-    List<HE_Path> paths = new ArrayList<>();
+    public List<HE_Path> paths = new ArrayList<>();
     WB_Render3D render;
 
     /*
@@ -31,7 +31,10 @@ public class SteinerTree_DG {
     public SteinerTree_DG(HE_Mesh mesh, List<HE_Vertex> vertexes) {
         this.mesh = mesh;
         this.vertexes = vertexes;
+        long start = System.currentTimeMillis();
         creatSTonMesh();
+        long end = System.currentTimeMillis();
+        System.out.println("程序运行时间：" + (end - start) / 1000 + "s");
     }
 
     private void creatSTonMesh() {
@@ -41,10 +44,12 @@ public class SteinerTree_DG {
             paths.add(findShortestVertex(vertexes.get(0), vertexes));
             vertexesOnPath = getStartAndEndVertexes(paths);
             //从现有路径节点中寻找最短的外部节点
+            int n = 0;
             while (!vertexesOnPath.containsAll(vertexes)) {
                 paths.add(findShortestVertex(paths, vertexes));
-                vertexesOnPath = getStartAndEndVertexes(paths);
-                System.out.println("Finding");
+                vertexesOnPath.addAll(getStartAndEndVertexes(paths));
+                vertexesOnPath = new ArrayList<>(new HashSet<>(vertexesOnPath));
+                System.out.println("Finding第" + n++ + "次" + "\t进度: " + vertexesOnPath.size() + " / " + vertexes.size());
             }
         } else {
             System.out.println("所选点数过少");
@@ -66,11 +71,18 @@ public class SteinerTree_DG {
         HE_Path path = null;
         List<HE_Vertex> vertexes = getStartAndEndVertexes(paths);
         for (HE_Vertex v : vs) {
-            for (HE_Vertex v0 : vertexes) {
-                if (!v0.equals(v) && !vertexesOnPath.contains(v)) {
-                    if (HE_Path.getShortestPath(v0, v, mesh).getPathLength() < shortest) {
-                        shortest = HE_Path.getShortestPath(v0, v, mesh).getPathLength();
-                        path = HE_Path.getShortestPath(v0, v, mesh);
+            if (!vertexesOnPath.contains(v)) {
+                for (HE_Vertex v0 : vertexes) {
+                    if (!v0.equals(v)) {
+                        try {
+                            HE_Path p = HE_Path.getShortestPath(v0, v, mesh);
+                            if (p.getPathLength() < shortest) {
+                                shortest = p.getPathLength();
+                                path = p;
+                            }
+                        } catch (Exception e) {
+                            vertexesOnPath.add(v);
+                        }
                     }
                 }
             }
@@ -84,9 +96,14 @@ public class SteinerTree_DG {
         HE_Path path = null;
         for (HE_Vertex v : vs) {
             if (!start.equals(v)) {
-                if (HE_Path.getShortestPath(start, v, mesh).getPathLength() < shortest) {
-                    shortest = HE_Path.getShortestPath(start, v, mesh).getPathLength();
-                    path = HE_Path.getShortestPath(start, v, mesh);
+                try {
+                    HE_Path p = HE_Path.getShortestPath(start, v, mesh);
+                    if (p.getPathLength() < shortest) {
+                        shortest = p.getPathLength();
+                        path = p;
+                    }
+                } catch (Exception e) {
+                    vertexesOnPath.add(v);
                 }
             }
         }
@@ -102,10 +119,6 @@ public class SteinerTree_DG {
         app.noFill();
         for (HE_Path path : paths)
             render.drawPath(path);
-//        for (int i = 0; i < vertexes.size(); i++) {
-//            app.textSize(30);
-//            app.text(i, vertexes.get(i).xf(), vertexes.get(i).yf(), vertexes.get(i).zf());
-//        }
         app.popStyle();
     }
 }

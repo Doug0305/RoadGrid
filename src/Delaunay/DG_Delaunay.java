@@ -18,7 +18,7 @@ public class DG_Delaunay {
     WB_Triangulation2DWithPoints delaunay;
     HE_Mesh delaunayWithHoles;
     WB_Render3D render;
-    ArrayList<WB_Point> nodes;
+    ArrayList<WB_Coord> nodes;
     WB_CoordCollection pointsAfterTriangulation;
 
     int number;
@@ -28,24 +28,42 @@ public class DG_Delaunay {
     public DG_Delaunay(DG_Network network, int number) {
         this.network = network;
         this.number = number;
-        constrains = new int[network.boundary.numberOfPoints()];
+        constrains = new int[network.aabbBoundary.numberOfPoints()];
         setNodes();
         setDelaunay();
     }
 
     private void setNodes() {
         nodes = new ArrayList<>();
-        for (int i = 0; i < Tools.aabbToWBPolygon(network.boundary).getNumberOfPoints(); i++) {
-            nodes.add(new WB_Point(Tools.aabbToWBPolygon(network.boundary).getPoint(i)));
-            constrains[i] = i;
+
+        //随机点
+//        for (int i = 0; i < number; i++) {
+//            nodes.add(Tools.randPinPoly(network.boundaryPolygon));
+//        }
+
+        //正交方格网
+//        for (double i = network.aabbBoundary.getMinX(); i < network.aabbBoundary.getMaxX(); i += 0.5) {
+//            for (double j = network.aabbBoundary.getMinY(); j < network.aabbBoundary.getMaxY(); j += 0.5) {
+//                nodes.add(new WB_Point(i,j));
+//            }
+//        }
+
+        //沿建筑方向的正交网格
+        for (int i = 0; i < network.houses.size(); i++) {
+            for (int j = 1; j < 6; j+=2) {
+                WB_Polygon buffer = Tools.createBufferFromCoords(network.houses.get(i).getPoints().toList(),j*0.5);
+                nodes.addAll(buffer.getPoints().toList());
+                for(WB_Segment segment: buffer.toSegments()){
+                    for (double k = 1; k < 8; k++) {
+//                        nodes.add(segment.getParametricPoint(k/5));
+                        nodes.add(segment.getPointOnCurve(k/8));
+                    }
+                }
+            }
         }
 
-        for (int i = 0; i < number; i++) {
-            nodes.add(Tools.randPinPoly(network.boundaryPolygon));
-        }
-
-        nodes.addAll(Tools.getAllPoints(network.innerPolys, 0.5));
-
+        nodes.addAll(network.sewers.points);
+        nodes.addAll(Tools.getAllPoints(network.houses));
     }
 
     private void setDelaunay() {
@@ -56,14 +74,13 @@ public class DG_Delaunay {
         HEC_FromTriangles creator = new HEC_FromTriangles();
         List<WB_Triangle> tris = new ArrayList<>();
         for (int i = 0; i < triangles.length; i += 3) {
-            if (!Tools.checkIntersections(pointsAfterTriangulation.get(triangles[i]), pointsAfterTriangulation.get(triangles[i + 1]), pointsAfterTriangulation.get(triangles[i + 2]), network.innerPolys)) {
+            if (!Tools.checkIntersections(pointsAfterTriangulation.get(triangles[i]), pointsAfterTriangulation.get(triangles[i + 1]), pointsAfterTriangulation.get(triangles[i + 2]), network.innerUnionPolys) &&
+                    Tools.checkIntersection(pointsAfterTriangulation.get(triangles[i]), pointsAfterTriangulation.get(triangles[i + 1]), pointsAfterTriangulation.get(triangles[i + 2]), network.boundaryPolygon)) {
                 tris.add(Tools.gf.createTriangle(pointsAfterTriangulation.get(triangles[i]), pointsAfterTriangulation.get(triangles[i + 1]), pointsAfterTriangulation.get(triangles[i + 2])));
             }
         }
         creator.setTriangles(tris);
         delaunayWithHoles = new HE_Mesh(creator);
-
-
     }
 
     public void show(PApplet app) {
@@ -71,25 +88,18 @@ public class DG_Delaunay {
         if (render == null)
             render = new WB_Render3D(app);
         app.noFill();
-        app.stroke(0);
+        app.stroke(150,50);
         app.strokeWeight(1);
-//        for (int i = 0; i < triangles.length; i += 3) {
-//            app.beginShape(app.TRIANGLES);
-//            render.vertex2D(pointsAfterTriangulation.get(triangles[i]));
-//            render.vertex2D(pointsAfterTriangulation.get(triangles[i + 1]));
-//            render.vertex2D(pointsAfterTriangulation.get(triangles[i + 2]));
-//            app.endShape();
-//        }
-        app.stroke(150, 0, 0,50);
-        app.strokeWeight(2);
-        render.drawEdges(delaunayWithHoles);
-        app.stroke(255, 0, 0);
-        for (int i = 0; i < constrains.length; i++) {
-            app.beginShape(app.LINES);
-            render.vertex2D(nodes.get(i));
-            render.vertex2D(nodes.get((i + 1) % constrains.length));
+        for (int i = 0; i < triangles.length; i += 3) {
+            app.beginShape(app.TRIANGLES);
+            render.vertex2D(pointsAfterTriangulation.get(triangles[i]));
+            render.vertex2D(pointsAfterTriangulation.get(triangles[i + 1]));
+            render.vertex2D(pointsAfterTriangulation.get(triangles[i + 2]));
             app.endShape();
         }
+        app.stroke(150, 0, 0, 50);
+        app.strokeWeight(2);
+        render.drawEdges(delaunayWithHoles);
         app.popStyle();
     }
 }

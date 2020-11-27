@@ -18,20 +18,38 @@ import java.util.stream.Collectors;
 public class DG_Network {
     DXFImporter importer;
     List<WB_Polygon> houses;
-    WB_AABB2D boundary;
+    WB_AABB2D aabbBoundary;
     WB_Render3D render;
     WB_Polygon boundaryPolygon;
+    List<WB_Polygon> innerUnionPolys;
+    DG_Nodes sewers;
 
-    List<WB_Polygon>innerPolys;
     public DG_Network(String path, String layer, double minDis) {
         importer = new DXFImporter(path, "GBK");
         houses = importer.getPolygons(layer);
 //        houses = subRepetitivePoint(houses);
-        boundary = new WB_AABB2D(houses.stream().map(e -> e.getPoints().toList()).flatMap(Collection::stream).collect(Collectors.toList()));
-        boundary.expandBy(10);
-        innerPolys = Tools.unionClosePolygonConvexHull(houses, minDis);
-        boundaryPolygon = Tools.aabbToWBPolygon(boundary);
+        aabbBoundary = new WB_AABB2D(houses.stream().map(e -> e.getPoints().toList()).flatMap(Collection::stream).collect(Collectors.toList()));
+        aabbBoundary.expandBy(10);
+        innerUnionPolys = Tools.unionClosePolygonConvexHull(houses, minDis);
+        boundaryPolygon = Tools.aabbToWBPolygon(aabbBoundary);
+    }
 
+    public DG_Network(String path, String layer, double minDis, DG_Nodes sewers,double buffer) {
+        importer = new DXFImporter(path, "GBK");
+        this.sewers = sewers;
+
+        houses = importer.getPolygons(layer);
+//        houses = subRepetitivePoint(houses);
+        aabbBoundary = new WB_AABB2D(houses.stream().map(e -> e.getPoints().toList()).flatMap(Collection::stream).collect(Collectors.toList()));
+        aabbBoundary.expandBy(10);
+        innerUnionPolys = Tools.unionClosePolygonConvexHull(houses, minDis);
+
+        //先用AABB选择范围内的点，再根据convex hull生成外轮廓
+        List<WB_Point> points = new ArrayList(Tools.getAllPoints(innerUnionPolys));
+        boundaryPolygon = Tools.aabbToWBPolygon(aabbBoundary);
+        sewers.constrainAABB(this);
+        points.addAll(sewers.points);
+        boundaryPolygon = Tools.createBufferFromPoints(points,buffer*2);
     }
 
     private List<WB_Polygon> subRepetitivePoint(List<WB_Polygon> polygons) {
@@ -55,7 +73,7 @@ public class DG_Network {
         app.stroke(0);
         app.noFill();
         render.drawPolygonEdges(boundaryPolygon);
-        app.stroke(255,0,0);
+        app.stroke(255, 0, 0);
         app.noFill();
         for (WB_Polygon poly : houses) {
             render.drawPolygonEdges(poly);
@@ -63,8 +81,8 @@ public class DG_Network {
         app.popStyle();
     }
 
-    public WB_AABB2D getBoundary() {
-        return boundary;
+    public WB_AABB2D getAabbBoundary() {
+        return aabbBoundary;
     }
 
 }

@@ -3,9 +3,11 @@ package Delaunay;
 import DxfReader.DXFImporter;
 import Findpath.SteinerTree_DG;
 import processing.core.PApplet;
+import wblut.geom.WB_GeometryOp;
 import wblut.geom.WB_KDTree3D;
 import wblut.geom.WB_Point;
 import wblut.hemesh.HE_MeshOp;
+import wblut.hemesh.HE_Path;
 import wblut.hemesh.HE_Vertex;
 import wblut.processing.WB_Render3D;
 
@@ -19,7 +21,7 @@ import java.util.List;
  */
 public class DG_Nodes {
     DXFImporter importer;
-    List<WB_Point> sewers = new ArrayList<>();
+    List<WB_Point> points = new ArrayList<>();
     List<HE_Vertex> closestVertex = new ArrayList<>();
     WB_Render3D render;
     DG_Delaunay delaunay;
@@ -28,28 +30,29 @@ public class DG_Nodes {
     public DG_Nodes(String path, String[] layers) {
         importer = new DXFImporter(path, "GBK");
         for (String layer : layers)
-            sewers.addAll(importer.getCircleCenters(layer));
+            points.addAll(importer.getCircleCenters(layer));
     }
 
     public void constrainAABB(DG_Network network) {
         this.network = network;
         List<WB_Point> newSewers = new ArrayList<>();
-        for (WB_Point point : sewers) {
-            if (network.boundary.contains(point))
+        for (WB_Point point : points) {
+            if (Tools.toJTSPolygon(network.boundaryPolygon).contains(Tools.toJTSpoint(point)))
                 newSewers.add(point);
         }
-        sewers = newSewers;
+        points = newSewers;
     }
 
     public void getClosestPointOnDelaunay(DG_Delaunay delaunay) {
         this.delaunay = delaunay;
         WB_KDTree3D tree3DT = delaunay.delaunayWithHoles.getVertexTree();
-        for (int i = 0; i < sewers.size(); i++) {
-            closestVertex.add(HE_MeshOp.getClosestVertex(delaunay.delaunayWithHoles, sewers.get(i), tree3DT));
+        for (int i = 0; i < points.size(); i++) {
+            closestVertex.add(HE_MeshOp.getClosestVertex(delaunay.delaunayWithHoles, points.get(i), tree3DT));
         }
     }
 
     SteinerTree_DG tree;
+
     public void SteinerTree() {
         tree = new SteinerTree_DG(delaunay.delaunayWithHoles, closestVertex);
     }
@@ -59,7 +62,7 @@ public class DG_Nodes {
         if (render == null)
             render = new WB_Render3D(app);
         app.fill(0, 50);
-        render.drawPoint(sewers, 1);
+        render.drawPoint(points, 1);
 
         app.fill(220, 200, 100);
         for (HE_Vertex v : closestVertex)
@@ -73,7 +76,7 @@ public class DG_Nodes {
         if (render == null)
             render = new WB_Render3D(app);
         app.fill(0, 50);
-        render.drawPoint(sewers, 1);
+        render.drawPoint(points, 1);
 
         app.fill(220, 200, 100);
         for (HE_Vertex v : closestVertex)

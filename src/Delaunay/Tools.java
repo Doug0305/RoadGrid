@@ -10,15 +10,13 @@ import java.util.List;
 import java.util.Random;
 
 import org.locationtech.jts.algorithm.ConvexHull;
+import org.locationtech.jts.algorithm.MinimumDiameter;
 import org.locationtech.jts.geom.*;
 
 import igeo.ICurve;
 import igeo.IVec;
-import org.locationtech.jts.triangulate.Segment;
 import processing.core.PApplet;
 import wblut.geom.*;
-
-import javax.sound.midi.Soundbank;
 
 public class Tools {
     public static WB_GeometryFactory gf = WB_GeometryFactory.instance();
@@ -285,12 +283,23 @@ public class Tools {
         return newPolygons;
     }
 
+
+    public static WB_Polygon createBufferFromCoords(List<WB_Coord> points, double d) {
+        WB_Polygon poly = getPolygonConvexHullFromCoords(points);
+        return gf.createBufferedPolygons(poly, d,0).get(0);
+    }
+
+    public static WB_Polygon createBufferFromPoints(List<WB_Point> points, double d) {
+        WB_Polygon poly = getPolygonConvexHullFromPoints(points);
+        return gf.createBufferedPolygons(poly, d,0).get(0);
+    }
+
     /*
     合并相距过近的polygon,d距离阈值
      */
     public static List<WB_Polygon> unionClosePolygons(List<WB_Polygon> polygons, double d) {
-        List<WB_Polygon> biggerPolygons = gf.createBufferedPolygons(polygons,d/2);
-        return gf.createBufferedPolygons(biggerPolygons,-d/2);
+        List<WB_Polygon> biggerPolygons = gf.createBufferedPolygons(polygons, d / 2,0);
+        return gf.createBufferedPolygons(biggerPolygons, -d / 2,0);
     }
 
     /*
@@ -298,11 +307,22 @@ public class Tools {
    */
     public static List<WB_Polygon> unionClosePolygonConvexHull(List<WB_Polygon> polygons, double d) {
         List<WB_Polygon> convexHull = new ArrayList<>();
-        for(WB_Polygon poly : polygons = unionClosePolygons(polygons,d)){
+        for (WB_Polygon poly : polygons = unionClosePolygons(polygons, d)) {
             ConvexHull a = new ConvexHull(toJTSPolygon(poly));
             convexHull.add(toWB_Polygon(a.getConvexHull()));
         }
         return convexHull;
+    }
+
+
+    public static WB_Polygon getPolygonConvexHullFromPoints(List<WB_Point> points) {
+        ConvexHull a = new ConvexHull(toJTSPolygon(gf.createSimplePolygon(points)));
+        return toWB_Polygon(a.getConvexHull());
+    }
+
+    public static WB_Polygon getPolygonConvexHullFromCoords(List<WB_Coord> points) {
+        ConvexHull a = new ConvexHull(toJTSPolygon(gf.createSimplePolygon(points)));
+        return toWB_Polygon(a.getConvexHull());
     }
 
 
@@ -318,6 +338,26 @@ public class Tools {
         return false;
     }
 
+    /*
+    判断三角形是否与多边形的集合中任意相交
+     */
+    public static boolean checkIntersection(WB_Coord a, WB_Coord b, WB_Coord c, WB_Polygon polygon) {
+        if (toJTSPolygon(polygon).intersects(JTSgf.createLinearRing(new Coordinate[]{toJTScoord((WB_Point) a), toJTScoord((WB_Point) b), toJTScoord((WB_Point) c), toJTScoord((WB_Point) a)}))) {
+            return true;
+        }
+        return false;
+    }
+
+    /*
+    判断点是否与多边形相交
+     */
+    public static boolean checkIntersection(WB_Point a, WB_Polygon polygon) {
+        if (toJTSPolygon(polygon).intersects(toJTSpoint(a))) {
+            return true;
+        }
+
+        return false;
+    }
 
     /*
     根据外轮廓和内部的洞创建带洞多边形
@@ -359,20 +399,44 @@ public class Tools {
     /*
     读取多边形集合中所有的点,并且沿边每隔一段距离取点
      */
-    public static List<WB_Point> getAllPoints(List<WB_Polygon> polygons, double maxDistance) {
-        List<WB_Point> points = new ArrayList<>();
+    public static List<WB_Coord> getAllCoords(List<WB_Polygon> polygons) {
+        List<WB_Coord> points = new ArrayList<>();
         for (WB_Polygon poly : polygons) {
             List<WB_Point> pointsForOne = new ArrayList<>();
-            for(int i = 0; i< poly.getNumberOfPoints();i++)
+            for (int i = 0; i < poly.getNumberOfPoints(); i++)
                 pointsForOne.add(poly.getPoint(i));
-
-//            for (int i = 0; i < pointsForOne.size(); i++) {
-//                double distance = WB_GeometryOp.getDistance3D(pointsForOne.get(i), pointsForOne.get(i + 1));
-//                    for (int n = 1; n < (int)(distance/maxDistance)+1; n++)
-//                        pointsForOne.add(gf.createInterpolatedPoint2D(pointsForOne.get(i), pointsForOne.get(i + 1), n*((int)(distance/maxDistance)+1)));
-//            }
             points.addAll(pointsForOne);
         }
         return points;
+    }
+
+    public static List<WB_Point> getAllPoints(List<WB_Polygon> polygons) {
+        List<WB_Point> points = new ArrayList<>();
+        for (WB_Polygon poly : polygons) {
+            List<WB_Point> pointsForOne = new ArrayList<>();
+            for (int i = 0; i < poly.getNumberOfPoints(); i++)
+                pointsForOne.add(poly.getPoint(i));
+            points.addAll(pointsForOne);
+        }
+        return points;
+    }
+
+
+    /*
+    求多边形的最小外接矩形
+     */
+    public static WB_Polygon getMinimumRectangle(WB_Polygon poly) {
+        Polygon toJTS = toJTSPolygon(poly);
+        Polygon obbrect = (Polygon) (new MinimumDiameter(toJTS)).getMinimumRectangle();
+        WB_Polygon obbrectPoly = toWB_Polygon(obbrect);
+//  return toJTS.getArea() / obbrect.getArea();
+        return obbrectPoly;
+    }
+
+    /*
+    求多个点的几何中心
+     */
+    public static WB_Coord getCenterPoint(List<WB_Coord> points) {
+        return getPolygonConvexHullFromCoords(points).getCenter();
     }
 }
