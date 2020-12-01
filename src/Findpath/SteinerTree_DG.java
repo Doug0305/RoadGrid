@@ -2,7 +2,6 @@ package Findpath;
 
 import processing.core.PApplet;
 import wblut.hemesh.HE_Mesh;
-import wblut.hemesh.HE_MeshOp;
 import wblut.hemesh.HE_Path;
 import wblut.hemesh.HE_Vertex;
 import wblut.processing.WB_Render3D;
@@ -10,7 +9,6 @@ import wblut.processing.WB_Render3D;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * @program: RoadGrid
@@ -42,19 +40,41 @@ public class SteinerTree_DG {
             //从一个节点开始寻找
             vertexesOnPath.add(vertexes.get(0));
             paths.add(findShortestVertex(vertexes.get(0), vertexes));
-            vertexesOnPath = getStartAndEndVertexes(paths);
+            vertexesOnPath = getAllVertexesOnPaths(paths);
             //从现有路径节点中寻找最短的外部节点
             int n = 0;
             while (!vertexesOnPath.containsAll(vertexes)) {
                 paths.add(findShortestVertex(paths, vertexes));
-                vertexesOnPath.addAll(getStartAndEndVertexes(paths));
+                vertexesOnPath.addAll(getAllVertexesOnPaths(paths));
                 vertexesOnPath = new ArrayList<>(new HashSet<>(vertexesOnPath));
-                System.out.println("Finding第" + n++ + "次" + "\t进度: " + vertexesOnPath.size() + " / " + vertexes.size());
+                System.out.println("Finding第" + n++ + "次" + "\t进度: " + checkProgress(vertexesOnPath,vertexes) + " / " + vertexes.size());
             }
         } else {
             System.out.println("所选点数过少");
         }
     }
+
+    private int checkProgress(List<HE_Vertex> vs , List<HE_Vertex> vOrigin){
+        int num = 0;
+        for (int i = 0; i < vs.size(); i++) {
+            for (int j = 0; j < vOrigin.size(); j++) {
+                if(vs.get(i).equals(vOrigin.get(j))){
+                    num++;
+                }
+            }
+        }
+        return num;
+    }
+
+    private List<HE_Vertex> getAllVertexesOnPaths(List<HE_Path> paths) {
+        List<HE_Vertex> vertexes = new ArrayList<>();
+        for (HE_Path path : paths) {
+            vertexes.addAll(path.getPathVertices());
+        }
+//        return new ArrayList<>(new HashSet<>(vertexes));
+        return vertexes;
+    }
+
 
     private List<HE_Vertex> getStartAndEndVertexes(List<HE_Path> paths) {
         List<HE_Vertex> vertexes = new ArrayList<>();
@@ -69,7 +89,7 @@ public class SteinerTree_DG {
     private HE_Path findShortestVertex(List<HE_Path> paths, List<HE_Vertex> vs) {
         double shortest = Double.MAX_VALUE;
         HE_Path path = null;
-        List<HE_Vertex> vertexes = getStartAndEndVertexes(paths);
+        List<HE_Vertex> vertexes = getAllVertexesOnPaths(paths);
         for (HE_Vertex v : vs) {
             if (!vertexesOnPath.contains(v)) {
                 for (HE_Vertex v0 : vertexes) {

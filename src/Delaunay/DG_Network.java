@@ -3,10 +3,15 @@ package Delaunay;
 import DxfReader.DXFImporter;
 import processing.core.PApplet;
 import wblut.geom.*;
+import wblut.hemesh.HEC_FromPolygons;
+import wblut.hemesh.HEC_Polygon;
+import wblut.hemesh.HET_Diagnosis;
+import wblut.hemesh.HE_Mesh;
 import wblut.processing.WB_Render3D;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -23,23 +28,15 @@ public class DG_Network {
     WB_Polygon boundaryPolygon;
     List<WB_Polygon> innerUnionPolys;
     DG_Nodes sewers;
+    ArrayList<HE_Mesh> meshs = new ArrayList<>();
+    HEC_Polygon creator = new HEC_Polygon();
 
-    public DG_Network(String path, String layer, double minDis) {
-        importer = new DXFImporter(path, "GBK");
-        houses = importer.getPolygons(layer);
-//        houses = subRepetitivePoint(houses);
-        aabbBoundary = new WB_AABB2D(houses.stream().map(e -> e.getPoints().toList()).flatMap(Collection::stream).collect(Collectors.toList()));
-        aabbBoundary.expandBy(10);
-        innerUnionPolys = Tools.unionClosePolygonConvexHull(houses, minDis);
-        boundaryPolygon = Tools.aabbToWBPolygon(aabbBoundary);
-    }
-
-    public DG_Network(String path, String layer, double minDis, DG_Nodes sewers,double buffer) {
+    public DG_Network(String path, String layer, double minDis, DG_Nodes sewers, double buffer) {
         importer = new DXFImporter(path, "GBK");
         this.sewers = sewers;
 
         houses = importer.getPolygons(layer);
-//        houses = subRepetitivePoint(houses);
+        houses = subRepetitivePoint(houses);
         aabbBoundary = new WB_AABB2D(houses.stream().map(e -> e.getPoints().toList()).flatMap(Collection::stream).collect(Collectors.toList()));
         aabbBoundary.expandBy(10);
         innerUnionPolys = Tools.unionClosePolygonConvexHull(houses, minDis);
@@ -49,7 +46,15 @@ public class DG_Network {
         boundaryPolygon = Tools.aabbToWBPolygon(aabbBoundary);
         sewers.constrainAABB(this);
         points.addAll(sewers.points);
-        boundaryPolygon = Tools.createBufferFromPoints(points,buffer*2);
+        boundaryPolygon = Tools.createBufferFromPoints(points, buffer * 2);
+
+        //房屋生成
+        for (WB_Polygon poly : houses) {
+            creator.setPolygon(poly);
+            creator.setThickness(3);
+            meshs.add(new HE_Mesh(creator));
+        }
+
     }
 
     private List<WB_Polygon> subRepetitivePoint(List<WB_Polygon> polygons) {
@@ -57,7 +62,9 @@ public class DG_Network {
         for (WB_Polygon poly : polygons) {
             List<WB_Coord> points = poly.getPoints().toList();
             List<WB_Coord> newList = points.stream().distinct().collect(Collectors.toList());
-            newPoly.add(new WB_Polygon(newList));
+            if(poly.getNormal().zd()>0)
+                Collections.reverse(newList);
+            newPoly.add(new WB_Polygon(newList).getSimplePolygon());
         }
         return newPoly;
     }
@@ -73,11 +80,19 @@ public class DG_Network {
         app.stroke(0);
         app.noFill();
         render.drawPolygonEdges(boundaryPolygon);
-        app.stroke(255, 0, 0);
+        app.stroke(0, 0, 0);
         app.noFill();
         for (WB_Polygon poly : houses) {
             render.drawPolygonEdges(poly);
         }
+
+//        for (HE_Mesh mesh : meshs) {
+//            app.fill(220);
+//            app.noStroke();
+//            render.drawFaces(mesh);
+//            app.stroke(0);
+//            render.drawEdges(mesh);
+//        }
         app.popStyle();
     }
 

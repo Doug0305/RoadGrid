@@ -27,11 +27,10 @@ public class Main extends PApplet {
 
     public void setup() {
         String path = "src\\01-01-11-雄州街道-龙虎营-兴隆.dxf";
-        cam = new CameraController(this, 300);
+        cam = new CameraController(this, 100);
         sewers = new DG_Nodes(path, new String[]{"KITCHEN", "TOILET", "SHOWER"});
-//        network = new DG_Network("src\\01-01-11-雄州街道-龙虎营-兴隆.dxf","TEST",1);
-//        network = new DG_Network(path,"JMDTEST",0.3, sewers,2);
-        network = new DG_Network(path, "JMD1", 1, sewers, 5);
+        network = new DG_Network(path, "JMDTEST", 0.3, sewers, 2);
+//        network = new DG_Network(path, "JMD1", 1, sewers, 5);
 //        land = new DG_Land(path,"GCD");
 //        land.smooth(15);
 //        land.setAABB(20);
@@ -45,11 +44,11 @@ public class Main extends PApplet {
         background(255);
         cam.begin2d();
         fill(200);
-        rect(0,0,width/5,height);
+        rect(0, 0, width / 5, height);
         textSize(20);
         fill(0);
-        text("Length of pipes: "+String.format("%.2f", pipes.lengthSum)+ " m",10,height/4);
-        text("Number of sewers: "+pipes.nodeNum,10,height/4+30);
+        text("Length of pipes: " + String.format("%.2f", pipes.lengthSum) + " m", 10, height / 4);
+        text("Number of sewers: " + pipes.nodeNum, 10, height / 4 + 30);
 
         cam.begin3d();
         cam.drawSystem(1000);
@@ -64,12 +63,16 @@ public class Main extends PApplet {
     }
 
     public void keyPressed() {
-        if (key == 'o'||key == 'O') {
+        if (key == 'o' || key == 'O') {
             pipes.optimize();
             OPTIMIZED = true;
         }
+        if (key == 'p' || key == 'P') {
+            pipes.angleOpt();
+            OPTIMIZED = true;
+        }
 
-        if (key == 'r'||key == 'R') {
+        if (key == 'r' || key == 'R') {
             OPTIMIZED = false;
         }
     }

@@ -63,7 +63,7 @@ public class DG_Delaunay {
         }
 
         nodes.addAll(network.sewers.points);
-        nodes.addAll(Tools.getAllPoints(network.houses));
+//        nodes.addAll(Tools.getAllPoints(network.houses));
     }
 
     private void setDelaunay() {

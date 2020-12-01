@@ -104,6 +104,25 @@ public class Tools {
     }
 
     /**
+     * 将JTS_Polygon转化为WB_Polygon
+     *
+     * @param line JTS多段线
+     * @return HeMesh多段线
+     */
+    public static WB_PolyLine toWB_PolyLine(LineString line) {
+        Coordinate[] coords = line.getCoordinates();
+        List<WB_Coord> list = new ArrayList<>();
+        for (Coordinate pt : coords) {
+            double z = pt.z;
+            if (Double.isNaN(z))
+                z = 0;
+            WB_Coord coordinate = new WB_Point(pt.x, pt.y, z);
+            list.add(coordinate);
+        }
+        return new WB_PolyLine(list);
+    }
+
+    /**
      * @param poly
      * @return
      */
@@ -116,6 +135,16 @@ public class Tools {
         }
         LinearRing ring = JTSgf.createLinearRing(addFirst2Last(coord));
         return JTSgf.createPolygon(ring);
+    }
+
+    public static LineString toJTSPolyline(WB_PolyLine poly) {
+        Coordinate[] coord = new Coordinate[poly.getNumberOfPoints()];
+        for (int i = 0; i < poly.getNumberOfPoints(); i++) {
+            WB_Point p = poly.getPoint(i);
+            Coordinate c = new Coordinate(p.xd(), p.yd(), p.zd());
+            coord[i] = c;
+        }
+        return JTSgf.createLineString(coord);
     }
 
     /**
@@ -245,6 +274,59 @@ public class Tools {
     }
 
     /*
+    检查WB_Polygon与WB_Polyline是否相交
+     */
+    public static boolean checkIntersection(WB_PolyLine poly1, WB_Polygon poly2) {
+        return toJTSPolygon(poly2).intersects(toJTSPolyline(poly1));
+    }
+
+    /*
+    检查WB_Polygon与WB_Polyline是否相交
+     */
+    public static boolean checkIntersection(WB_PolyLine poly, List<WB_Polygon> polygons) {
+        for (WB_Polygon polygon : polygons) {
+            if (toJTSPolygon(polygon).intersects(toJTSPolyline(poly))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static boolean checkIntersection(List<WB_PolyLine> poly, List<WB_Polygon> polygons) {
+        for (WB_Polygon polygon : polygons) {
+            for (WB_PolyLine line : poly) {
+                if (toJTSPolygon(polygon).intersects(toJTSPolyline(line))) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /*
+    判断三角形是否与多边形的集合中任意相交
+     */
+    public static boolean checkIntersections(WB_Coord a, WB_Coord b, WB_Coord c, List<WB_Polygon> polygons) {
+        for (WB_Polygon polygon : polygons) {
+            if (toJTSPolygon(polygon).intersects(JTSgf.createLinearRing(new Coordinate[]{toJTScoord((WB_Point) a), toJTScoord((WB_Point) b), toJTScoord((WB_Point) c), toJTScoord((WB_Point) a)}))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /*
+    判断三角形是否与多边形的集合中任意相交
+     */
+    public static boolean checkIntersection(WB_Coord a, WB_Coord b, WB_Coord c, WB_Polygon polygon) {
+        if (toJTSPolygon(polygon).intersects(JTSgf.createLinearRing(new Coordinate[]{toJTScoord((WB_Point) a), toJTScoord((WB_Point) b), toJTScoord((WB_Point) c), toJTScoord((WB_Point) a)}))) {
+            return true;
+        }
+        return false;
+    }
+
+
+    /*
     获取所有多边形的交集
     但更推荐使用gf.createBufferedPolygons
     待完善。。。。
@@ -286,20 +368,20 @@ public class Tools {
 
     public static WB_Polygon createBufferFromCoords(List<WB_Coord> points, double d) {
         WB_Polygon poly = getPolygonConvexHullFromCoords(points);
-        return gf.createBufferedPolygons(poly, d,0).get(0);
+        return gf.createBufferedPolygons(poly, d, 0).get(0);
     }
 
     public static WB_Polygon createBufferFromPoints(List<WB_Point> points, double d) {
         WB_Polygon poly = getPolygonConvexHullFromPoints(points);
-        return gf.createBufferedPolygons(poly, d,0).get(0);
+        return gf.createBufferedPolygons(poly, d, 0).get(0);
     }
 
     /*
     合并相距过近的polygon,d距离阈值
      */
     public static List<WB_Polygon> unionClosePolygons(List<WB_Polygon> polygons, double d) {
-        List<WB_Polygon> biggerPolygons = gf.createBufferedPolygons(polygons, d / 2,0);
-        return gf.createBufferedPolygons(biggerPolygons, -d / 2,0);
+        List<WB_Polygon> biggerPolygons = gf.createBufferedPolygons(polygons, d / 2, 0);
+        return gf.createBufferedPolygons(biggerPolygons, -d / 2, 0);
     }
 
     /*
@@ -325,28 +407,6 @@ public class Tools {
         return toWB_Polygon(a.getConvexHull());
     }
 
-
-    /*
-    判断三角形是否与多边形的集合中任意相交
-     */
-    public static boolean checkIntersections(WB_Coord a, WB_Coord b, WB_Coord c, List<WB_Polygon> polygons) {
-        for (WB_Polygon polygon : polygons) {
-            if (toJTSPolygon(polygon).intersects(JTSgf.createLinearRing(new Coordinate[]{toJTScoord((WB_Point) a), toJTScoord((WB_Point) b), toJTScoord((WB_Point) c), toJTScoord((WB_Point) a)}))) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /*
-    判断三角形是否与多边形的集合中任意相交
-     */
-    public static boolean checkIntersection(WB_Coord a, WB_Coord b, WB_Coord c, WB_Polygon polygon) {
-        if (toJTSPolygon(polygon).intersects(JTSgf.createLinearRing(new Coordinate[]{toJTScoord((WB_Point) a), toJTScoord((WB_Point) b), toJTScoord((WB_Point) c), toJTScoord((WB_Point) a)}))) {
-            return true;
-        }
-        return false;
-    }
 
     /*
     判断点是否与多边形相交
@@ -428,9 +488,7 @@ public class Tools {
     public static WB_Polygon getMinimumRectangle(WB_Polygon poly) {
         Polygon toJTS = toJTSPolygon(poly);
         Polygon obbrect = (Polygon) (new MinimumDiameter(toJTS)).getMinimumRectangle();
-        WB_Polygon obbrectPoly = toWB_Polygon(obbrect);
-//  return toJTS.getArea() / obbrect.getArea();
-        return obbrectPoly;
+        return toWB_Polygon(obbrect);
     }
 
     /*
