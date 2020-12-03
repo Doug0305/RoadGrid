@@ -90,6 +90,7 @@ public class SteinerTree_DG {
         double shortest = Double.MAX_VALUE;
         HE_Path path = null;
         List<HE_Vertex> vertexes = getAllVertexesOnPaths(paths);
+        long start = System.currentTimeMillis();
         for (HE_Vertex v : vs) {
             if (!vertexesOnPath.contains(v)) {
                 for (HE_Vertex v0 : vertexes) {
@@ -107,6 +108,8 @@ public class SteinerTree_DG {
                 }
             }
         }
+        long end = System.currentTimeMillis();
+        System.out.println("单次：" + (end - start) + "ms");
         return path;
     }
 
@@ -134,11 +137,7 @@ public class SteinerTree_DG {
         if (render == null)
             render = new WB_Render3D(app);
 
-        app.pushStyle();
-        app.stroke(0, 255, 0);
-        app.noFill();
         for (HE_Path path : paths)
             render.drawPath(path);
-        app.popStyle();
     }
 }

@@ -3,15 +3,14 @@ package Delaunay;
 import DxfReader.DXFImporter;
 import Findpath.SteinerTree_DG;
 import processing.core.PApplet;
-import wblut.geom.WB_GeometryOp;
 import wblut.geom.WB_KDTree3D;
 import wblut.geom.WB_Point;
 import wblut.hemesh.HE_MeshOp;
-import wblut.hemesh.HE_Path;
 import wblut.hemesh.HE_Vertex;
 import wblut.processing.WB_Render3D;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 
 /**
@@ -22,6 +21,9 @@ import java.util.List;
 public class DG_Nodes {
     DXFImporter importer;
     List<WB_Point> points = new ArrayList<>();
+    List<WB_Point> pointsInHouse = new ArrayList<>();
+    List<WB_Point> pointsOutOfHouses = new ArrayList<>();
+    List<WB_Point> closestPointsOnBoundary = new ArrayList<>();
     List<HE_Vertex> closestVertex = new ArrayList<>();
     WB_Render3D render;
     DG_Delaunay delaunay;
@@ -37,9 +39,18 @@ public class DG_Nodes {
         this.network = network;
         List<WB_Point> newSewers = new ArrayList<>();
         for (WB_Point point : points) {
-            if (Tools.toJTSPolygon(network.boundaryPolygon).contains(Tools.toJTSpoint(point)))
+            if (Tools.toJTSPolygon(network.boundaryPolygon).contains(Tools.toJTSpoint(point))) {
                 newSewers.add(point);
+                if(Tools.checkIntersection(point,network.houses)) {
+                    closestPointsOnBoundary.add(Tools.getClosestPointOnPolygons(point,Tools.createBufferedPolygons(network.innerUnionPolys,0.5)));
+                    pointsInHouse.add(point);
+                }
+                else {
+                    pointsOutOfHouses.add(point);
+                }
+            }
         }
+        closestPointsOnBoundary = new ArrayList<>(new HashSet<>(closestPointsOnBoundary));
         points = newSewers;
     }
 
@@ -78,12 +89,15 @@ public class DG_Nodes {
         app.fill(0, 50);
         render.drawPoint(points, 1);
 
+
         app.fill(220, 200, 100);
         for (HE_Vertex v : closestVertex)
             render.drawVertex(v, 0.5);
+//        render.drawPoint(closestPointsOnBoundary,2);
 
         app.stroke(0, 255, 0);
         app.noFill();
+        app.strokeWeight(2);
         tree.show(app);
         app.popStyle();
     }

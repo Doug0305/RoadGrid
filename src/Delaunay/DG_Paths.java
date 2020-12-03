@@ -1,12 +1,9 @@
 package Delaunay;
 
-import gzf.gui.JTSRender;
-import javafx.scene.shape.Polyline;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.LineString;
 import org.locationtech.jts.geom.MultiLineString;
 import org.locationtech.jts.operation.linemerge.LineMerger;
-import org.locationtech.jts.simplify.DouglasPeuckerSimplifier;
 import org.locationtech.jts.simplify.TopologyPreservingSimplifier;
 import processing.core.PApplet;
 import processing.core.PConstants;
@@ -75,14 +72,15 @@ public class DG_Paths {
 
     public void angleOpt() {
         int n = 0;
-        while (n < 1000) {
+        while (n < 10) {
             for (int i = 0; i < pathLines.size(); i++) {
                 for (int j = 0; j < pathLines.get(i).getNumberOfPoints(); j++) {
                     double past = getSinSumOfLines(pathLines);
                     List<WB_PolyLine> pathLinesNow = moveRandom(pathLines.get(i).getPoint(j), pathLines, 1);
                     double now = getSinSumOfLines(pathLinesNow);
                     //条件尚未调整合适
-                    if (past > now && Tools.checkIntersection(pathLinesNow, houses))
+//                    if (past > now && Tools.checkIntersection(pathLinesNow, houses))
+                    if (past > now )
                         pathLines = pathLinesNow;
                 }
             }
@@ -122,10 +120,37 @@ public class DG_Paths {
         return sum;
     }
 
+    //计算经过某一顶点的多段线sin值
+    private double getSinOfTwoLines(WB_PolyLine l1, WB_PolyLine l2, WB_Point p) {
+        double sin = 0;
+
+        return sin;
+    }
+
     private double getSinSumOfLines(List<WB_PolyLine> polyLines) {
         double sum = 0;
+        //线段内的夹角
         for (WB_PolyLine polyLine : polyLines) {
             sum += getSinSumOfLine(polyLine);
+        }
+
+        //线段间的夹角
+        List<WB_Point> points = new ArrayList<>(new HashSet<>(Tools.getAllPointsOfPolyline(polyLines)));
+        for (int i = 0; i < points.size(); i++) {
+            List<WB_PolyLine> polyLinesOnPoint = new ArrayList<>();
+            for (int j = 0; j <polyLines.size(); j++) {
+                if(polyLines.get(j).getPoints().toList().contains(points.get(i)))
+                    polyLinesOnPoint.add(polyLines.get(j));
+            }
+            //找到点，及其相连的多段线，计算两两的夹角
+            if(polyLinesOnPoint.size()>1){
+                for (int j = 0; j < polyLinesOnPoint.size(); j++) {
+                    for (int k = j; k < polyLinesOnPoint.size(); k++) {
+                       sum += getSinOfTwoLines(polyLinesOnPoint.get(j),polyLinesOnPoint.get(k),points.get(i));
+
+                    }
+                }
+            }
         }
         return sum;
     }
@@ -145,13 +170,13 @@ public class DG_Paths {
         }
 
         app.pushStyle();
-        render.drawPoint(nodes, 0.5);
+//        render.drawPoint(nodes, 0.5);
         for (int i = 0; i < pathLines.size(); i++) {
             app.colorMode(PConstants.HSB);
-            app.strokeWeight(i + 1);
-            app.stroke(i * 10, 255, 255);
-            WB_Transform3D t = new WB_Transform3D().addTranslate(new WB_Vector(0, 0, i * 0.3));
-            render.drawPolylineEdges(pathLines.get(i).apply(t));
+            app.strokeWeight(2);
+            app.stroke(0, 255, 255);
+//            WB_Transform3D t = new WB_Transform3D().addTranslate(new WB_Vector(0, 0, i * 0.3));
+            render.drawPolylineEdges(pathLines.get(i));
         }
         app.popStyle();
     }

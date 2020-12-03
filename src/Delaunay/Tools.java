@@ -17,6 +17,9 @@ import igeo.ICurve;
 import igeo.IVec;
 import processing.core.PApplet;
 import wblut.geom.*;
+import wblut.hemesh.HEC_AlphaShape;
+import wblut.hemesh.HE_Mesh;
+import wblut.hemesh.HE_Vertex;
 
 public class Tools {
     public static WB_GeometryFactory gf = WB_GeometryFactory.instance();
@@ -327,40 +330,13 @@ public class Tools {
 
 
     /*
-    获取所有多边形的交集
-    但更推荐使用gf.createBufferedPolygons
-    待完善。。。。
-     */
-    public static List<WB_Polygon> getPolygonUnion(List<WB_Polygon> polygons) {
-        while (true) {
-            int num = 0;
-            loop:
-            for (int i = 0; i < polygons.size(); i++) {
-                for (int j = i + 1; j < polygons.size(); j++) {
-                    if (Tools.checkIntersection(polygons.get(i), polygons.get(j)) &
-                            Tools.gf.unionPolygons2D(polygons.get(i), polygons.get(j)).size() == 1) {
-                        polygons.addAll(Tools.gf.unionPolygons2D(polygons.get(i), polygons.get(j)));
-                        num++;
-                        polygons.remove(j);
-                        polygons.remove(i);
-                        break loop;
-                    }
-                }
-            }
-            if (num == 0)
-                break;
-        }
-        return polygons;
-    }
-
-    /*
     生成WB_Polygon的集合生成各自的buffer，
      */
 
     public static List<WB_Polygon> createBufferedPolygons(List<WB_Polygon> polygons, double d) {
         List<WB_Polygon> newPolygons = new ArrayList<>();
         for (WB_Polygon polygon : polygons) {
-            newPolygons.addAll(gf.createBufferedPolygons(polygon, d));
+            newPolygons.addAll(gf.createBufferedPolygons(polygon, d,0));
         }
         return newPolygons;
     }
@@ -381,19 +357,38 @@ public class Tools {
      */
     public static List<WB_Polygon> unionClosePolygons(List<WB_Polygon> polygons, double d) {
         List<WB_Polygon> biggerPolygons = gf.createBufferedPolygons(polygons, d / 2, 0);
-        return gf.createBufferedPolygons(biggerPolygons, -d / 2, 0);
+        List<WB_Polygon> smallerPolygons = gf.createBufferedPolygons(biggerPolygons, -d / 2, 0);
+        List<WB_Polygon> polys = new ArrayList<>();
+        for (WB_Polygon poly : smallerPolygons
+        ) {
+            List<WB_Point> ps = new ArrayList<>();
+            for (int i = 0; i < poly.getNumberOfShellPoints(); i++) {
+                ps.add(poly.getPoint(i));
+            }
+            polys.add(new WB_Polygon(ps));
+        }
+        return polys;
+    }
+
+    public static List<WB_Polygon> unionClosePolygonConvexHull(List<WB_Polygon> polygons, double d) {
+        List<WB_Polygon> convexHull = new ArrayList<>();
+        for (WB_Polygon poly : unionClosePolygons(polygons, d)) {
+            ConvexHull a = new ConvexHull(toJTSPolygon(poly));
+            convexHull.add(toWB_Polygon(a.getConvexHull()));
+        }
+        return convexHull;
     }
 
     /*
       求集合内每个多边形的凸包
    */
-    public static List<WB_Polygon> unionClosePolygonConvexHull(List<WB_Polygon> polygons, double d) {
-        List<WB_Polygon> convexHull = new ArrayList<>();
-        for (WB_Polygon poly : polygons = unionClosePolygons(polygons, d)) {
-            ConvexHull a = new ConvexHull(toJTSPolygon(poly));
-            convexHull.add(toWB_Polygon(a.getConvexHull()));
+    public static List<WB_Polygon> unionClosePolygonsBoundary(List<WB_Polygon> polygons, double d) {
+        List<WB_Polygon> boundary = new ArrayList<>();
+        for (WB_Polygon poly : unionClosePolygons(polygons, d)) {
+            boundary.add(poly);
+//            boundary.add(getAlphaShape(poly,50));
         }
-        return convexHull;
+        return boundary;
     }
 
 
@@ -416,6 +411,15 @@ public class Tools {
             return true;
         }
 
+        return false;
+    }
+
+    public static boolean checkIntersection(WB_Point a, List<WB_Polygon> polygons) {
+        for (WB_Polygon polygon : polygons) {
+            if (toJTSPolygon(polygon).intersects(toJTSpoint(a))) {
+                return true;
+            }
+        }
         return false;
     }
 
@@ -470,9 +474,20 @@ public class Tools {
         return points;
     }
 
-    public static List<WB_Point> getAllPoints(List<WB_Polygon> polygons) {
+    public static List<WB_Point> getAllPointsOfPolygons(List<WB_Polygon> polygons) {
         List<WB_Point> points = new ArrayList<>();
         for (WB_Polygon poly : polygons) {
+            List<WB_Point> pointsForOne = new ArrayList<>();
+            for (int i = 0; i < poly.getNumberOfPoints(); i++)
+                pointsForOne.add(poly.getPoint(i));
+            points.addAll(pointsForOne);
+        }
+        return points;
+    }
+
+    public static List<WB_Point> getAllPointsOfPolyline(List<WB_PolyLine> polylines) {
+        List<WB_Point> points = new ArrayList<>();
+        for (WB_PolyLine poly : polylines) {
             List<WB_Point> pointsForOne = new ArrayList<>();
             for (int i = 0; i < poly.getNumberOfPoints(); i++)
                 pointsForOne.add(poly.getPoint(i));
@@ -497,4 +512,42 @@ public class Tools {
     public static WB_Coord getCenterPoint(List<WB_Coord> points) {
         return getPolygonConvexHullFromCoords(points).getCenter();
     }
+
+
+    /*
+    在多个多边形包裹若干点的时候，寻找每个多边形内
+     */
+    public static WB_Point getClosestPointOnPolygons(WB_Point point, List<WB_Polygon> polygons) {
+        List<WB_Segment> segments = new ArrayList<>();
+        for (WB_Polygon poly : polygons) {
+            segments.addAll(poly.toSegments());
+        }
+        double min = Double.MAX_VALUE;
+        WB_Point p = point;
+        for (int i = 0; i < segments.size(); i++) {
+            if (WB_GeometryOp.getDistance3D(point, segments.get(i)) < min) {
+                p = WB_GeometryOp.getClosestPoint3D(segments.get(i), point);
+                min = WB_GeometryOp.getDistance3D(point, segments.get(i));
+            }
+        }
+        return p;
+    }
+
+    /*
+    取传入多边形的alphaShape
+     */
+    public static WB_Polygon getAlphaShape(WB_Polygon poly, double radius){
+        List<WB_Coord> points = poly.getPoints().toList();
+
+        WB_AlphaTriangulation3D triangulation=WB_Triangulate.alphaTriangulate3D(points);
+        HE_Mesh mesh = new HE_Mesh(new HEC_AlphaShape().setTriangulation(triangulation).setAlpha(radius));
+        List<WB_Coord> newPoints = new ArrayList<>(mesh.getVerticesAsCoord());
+
+
+        if(points.size()==0)
+        System.out.println(newPoints.size());
+
+        return new WB_Polygon(newPoints);
+    }
+
 }

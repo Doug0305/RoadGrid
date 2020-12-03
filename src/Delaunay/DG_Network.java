@@ -3,9 +3,7 @@ package Delaunay;
 import DxfReader.DXFImporter;
 import processing.core.PApplet;
 import wblut.geom.*;
-import wblut.hemesh.HEC_FromPolygons;
 import wblut.hemesh.HEC_Polygon;
-import wblut.hemesh.HET_Diagnosis;
 import wblut.hemesh.HE_Mesh;
 import wblut.processing.WB_Render3D;
 
@@ -39,10 +37,10 @@ public class DG_Network {
         houses = subRepetitivePoint(houses);
         aabbBoundary = new WB_AABB2D(houses.stream().map(e -> e.getPoints().toList()).flatMap(Collection::stream).collect(Collectors.toList()));
         aabbBoundary.expandBy(10);
-        innerUnionPolys = Tools.unionClosePolygonConvexHull(houses, minDis);
+        innerUnionPolys = Tools.unionClosePolygonsBoundary(houses, minDis);
 
         //先用AABB选择范围内的点，再根据convex hull生成外轮廓
-        List<WB_Point> points = new ArrayList(Tools.getAllPoints(innerUnionPolys));
+        List<WB_Point> points = new ArrayList(Tools.getAllPointsOfPolygons(innerUnionPolys));
         boundaryPolygon = Tools.aabbToWBPolygon(aabbBoundary);
         sewers.constrainAABB(this);
         points.addAll(sewers.points);
@@ -76,7 +74,8 @@ public class DG_Network {
         app.pushStyle();
         app.fill(100);
         app.noStroke();
-        render.drawPolygon(boundaryPolygon);
+//        render.drawPolygon(boundaryPolygon);
+        render.drawPolygon(innerUnionPolys);
         app.stroke(0);
         app.noFill();
         render.drawPolygonEdges(boundaryPolygon);

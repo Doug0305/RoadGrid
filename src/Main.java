@@ -29,8 +29,8 @@ public class Main extends PApplet {
         String path = "src\\01-01-11-雄州街道-龙虎营-兴隆.dxf";
         cam = new CameraController(this, 100);
         sewers = new DG_Nodes(path, new String[]{"KITCHEN", "TOILET", "SHOWER"});
-        network = new DG_Network(path, "JMDTEST", 0.3, sewers, 2);
-//        network = new DG_Network(path, "JMD1", 1, sewers, 5);
+        //network = new DG_Network(path, "JMDTEST", 2, sewers, 2);
+        network = new DG_Network(path, "JMD1", 0.9, sewers, 2);
 //        land = new DG_Land(path,"GCD");
 //        land.smooth(15);
 //        land.setAABB(20);
@@ -58,6 +58,7 @@ public class Main extends PApplet {
             sewers.showTree(this);
             delaunay.show(this);
         } else {
+            sewers.show(this);
             pipes.show(this);
         }
     }

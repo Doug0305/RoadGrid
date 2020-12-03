@@ -50,20 +50,21 @@ public class DG_Delaunay {
 
         //沿建筑方向的正交网格
         for (int i = 0; i < network.houses.size(); i++) {
-            for (int j = 1; j < 6; j+=2) {
+            for (int j = 1; j < 3; j+=2) {
                 WB_Polygon buffer = Tools.createBufferFromCoords(network.houses.get(i).getPoints().toList(),j*0.5);
                 nodes.addAll(buffer.getPoints().toList());
-                for(WB_Segment segment: buffer.toSegments()){
-                    for (double k = 1; k < 8; k++) {
-//                        nodes.add(segment.getParametricPoint(k/5));
-                        nodes.add(segment.getPointOnCurve(k/8));
-                    }
-                }
+//                for(WB_Segment segment: buffer.toSegments()){
+//                    for (double k = 1; k < 2; k++) {
+//                        nodes.add(segment.getPointOnCurve(k/3));
+//                    }
+//                }
             }
         }
 
-        nodes.addAll(network.sewers.points);
-//        nodes.addAll(Tools.getAllPoints(network.houses));
+        nodes.addAll(network.boundaryPolygon.getPoints().toList());
+        nodes.addAll(network.sewers.pointsOutOfHouses);
+        nodes.addAll(network.sewers.closestPointsOnBoundary);
+//        nodes.addAll(Tools.getAllCoords(network.houses));
     }
 
     private void setDelaunay() {
@@ -80,6 +81,7 @@ public class DG_Delaunay {
             }
         }
         creator.setTriangles(tris);
+        creator.setRemoveUnconnectedElements(true);
         delaunayWithHoles = new HE_Mesh(creator);
     }
 
